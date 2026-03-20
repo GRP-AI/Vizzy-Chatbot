@@ -2,37 +2,28 @@ import streamlit as st
 from diffusers import StableDiffusionPipeline
 import torch
 
-# Load the model once and cache it
+# Cache the model so it loads only once
 @st.cache_resource
 def load_model():
-    try:
-        pipe = StableDiffusionPipeline.from_pretrained(
-            "runwayml/stable-diffusion-v1-5",
-            torch_dtype=torch.float32
-        )
-        pipe = pipe.to("cpu")  # Force CPU mode (Streamlit Cloud has no GPU)
-        return pipe
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
-        return None
+    pipe = StableDiffusionPipeline.from_pretrained(
+        "stabilityai/stable-diffusion-2-1-base",  # lighter model than v1-5
+        torch_dtype=torch.float32
+    )
+    pipe = pipe.to("cpu")  # Streamlit Cloud runs on CPU
+    return pipe
 
 pipe = load_model()
 
 st.title("Vizzy Chatbot 🚀")
 st.write("Enter a prompt to generate an image:")
 
-# Prompt input
 prompt = st.text_input("Prompt", "A futuristic city on Mars with domes and rovers")
 
-# Generate image button
 if st.button("Generate Image"):
-    if pipe is None:
-        st.error("Model not available. Please check requirements.txt and logs.")
-    else:
+    with st.spinner("Generating image... (may take ~30s on CPU)"):
         try:
-            with st.spinner("Generating... (may take 30–60s on CPU)"):
-                image = pipe(prompt).images[0]
-                st.image(image, caption="Generated Image", use_column_width=True)
+            image = pipe(prompt).images[0]
+            st.image(image, caption="Generated Image", use_column_width=True)
         except Exception as e:
             st.error(f"Image generation failed: {e}")
 
