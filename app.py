@@ -2,14 +2,14 @@ import streamlit as st
 import requests
 from PIL import Image
 from io import BytesIO
+import json
 
-# Hugging Face API endpoint for Stable Diffusion
 API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
-headers = {"Authorization": "Bearer YOUR_HF_API_TOKEN"}  # Replace with your Hugging Face token
+headers = {"Authorization": "Bearer YOUR_HF_API_TOKEN"}  # Replace with your token
 
 def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
-    return response.content
+    return response
 
 st.title("Vizzy Chatbot 🚀")
 st.write("Enter a prompt to generate an image:")
@@ -19,9 +19,19 @@ prompt = st.text_input("Prompt", "A futuristic city on Mars with domes and rover
 if st.button("Generate Image"):
     with st.spinner("Generating image..."):
         try:
-            image_bytes = query({"inputs": prompt})
-            image = Image.open(BytesIO(image_bytes))
-            st.image(image, caption="Generated Image", use_column_width=True)
+            response = query({"inputs": prompt})
+            if response.status_code == 200:
+                # Try to open as image
+                try:
+                    image = Image.open(BytesIO(response.content))
+                    st.image(image, caption="Generated Image", use_column_width=True)
+                except Exception:
+                    # If not an image, show text error
+                    st.error("Response was not an image. Details:")
+                    st.text(response.text)
+            else:
+                st.error(f"API error {response.status_code}: {response.text}")
         except Exception as e:
             st.error(f"Image generation failed: {e}")
+
 
