@@ -1,4 +1,8 @@
 streamlit
-requests
+torch
+transformers
+diffusers
 Pillow
+numpy
+safetensors
 
