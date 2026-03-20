@@ -2,10 +2,10 @@ import streamlit as st
 import requests
 from PIL import Image
 from io import BytesIO
-import json
 
-API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
-headers = {"Authorization": "Bearer YOUR_HF_API_TOKEN"}  # Replace with your token
+# Hugging Face Router endpoint
+API_URL = "https://router.huggingface.co/runwayml/stable-diffusion-v1-5"
+headers = {"Authorization": "Bearer YOUR_HF_API_TOKEN"}  # Replace with your Hugging Face token
 
 def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
@@ -21,17 +21,14 @@ if st.button("Generate Image"):
         try:
             response = query({"inputs": prompt})
             if response.status_code == 200:
-                # Try to open as image
                 try:
                     image = Image.open(BytesIO(response.content))
                     st.image(image, caption="Generated Image", use_column_width=True)
                 except Exception:
-                    # If not an image, show text error
                     st.error("Response was not an image. Details:")
                     st.text(response.text)
             else:
                 st.error(f"API error {response.status_code}: {response.text}")
         except Exception as e:
             st.error(f"Image generation failed: {e}")
-
 
