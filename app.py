@@ -1,34 +1,39 @@
 import streamlit as st
-import requests
-from PIL import Image
-from io import BytesIO
+from diffusers import StableDiffusionPipeline
+import torch
 
-# Hugging Face Router endpoint
-API_URL = "https://router.huggingface.co/runwayml/stable-diffusion-v1-5"
-headers = {"Authorization": "Bearer YOUR_HF_API_TOKEN"}  # Replace with your Hugging Face token
+# Load the model once and cache it
+@st.cache_resource
+def load_model():
+    try:
+        pipe = StableDiffusionPipeline.from_pretrained(
+            "runwayml/stable-diffusion-v1-5",
+            torch_dtype=torch.float32
+        )
+        pipe = pipe.to("cpu")  # Force CPU mode (Streamlit Cloud has no GPU)
+        return pipe
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return None
 
-def query(payload):
-    response = requests.post(API_URL, headers=headers, json=payload)
-    return response
+pipe = load_model()
 
 st.title("Vizzy Chatbot 🚀")
 st.write("Enter a prompt to generate an image:")
 
+# Prompt input
 prompt = st.text_input("Prompt", "A futuristic city on Mars with domes and rovers")
 
+# Generate image button
 if st.button("Generate Image"):
-    with st.spinner("Generating image..."):
+    if pipe is None:
+        st.error("Model not available. Please check requirements.txt and logs.")
+    else:
         try:
-            response = query({"inputs": prompt})
-            if response.status_code == 200:
-                try:
-                    image = Image.open(BytesIO(response.content))
-                    st.image(image, caption="Generated Image", use_column_width=True)
-                except Exception:
-                    st.error("Response was not an image. Details:")
-                    st.text(response.text)
-            else:
-                st.error(f"API error {response.status_code}: {response.text}")
+            with st.spinner("Generating... (may take 30–60s on CPU)"):
+                image = pipe(prompt).images[0]
+                st.image(image, caption="Generated Image", use_column_width=True)
         except Exception as e:
             st.error(f"Image generation failed: {e}")
 
+              
